@@ -1,122 +1,164 @@
 package main
 
 import (
-	"quisur-challenge/config"
-	"quisur-challenge/handlers"
-	"quisur-challenge/middleware"
-	"quisur-challenge/models"
-	"quisur-challenge/seeders"
-	"quisur-challenge/websocket"
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal" // IMPORTANTE: Faltaba para el Graceful Shutdown
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	// OJO: Asegúrate de que esta sea la ruta real de tu módulo en go.mod
+	"github.com/jonysanturio/challenge-golang/config"
+	"github.com/jonysanturio/challenge-golang/handlers"
+	"github.com/jonysanturio/challenge-golang/middleware"
+	"github.com/jonysanturio/challenge-golang/models"
+	"github.com/jonysanturio/challenge-golang/repositories"
+	"github.com/jonysanturio/challenge-golang/seeders"
+	"github.com/jonysanturio/challenge-golang/services"
+	"github.com/jonysanturio/challenge-golang/websocket"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil{
-		log.Printf("ERROR: file not found")
+	// 1. Cargar variables de entorno
+	if err := godotenv.Load(); err != nil {
+		log.Println("Advertencia: Archivo .env no encontrado. Usando variables del sistema.")
 	}
 
-	// Inicializacion de configuracion
-	config.Init()
-	
-	// Conexion a BD
-	db = config.GetDB()
+	// 2. Inicializar BD
+	config.Init() // Si tienes esta función en config
+	db := config.ConnectDB() // o GetDB()
 	if db == nil {
 		log.Fatal("Error al conectar a la base de datos")
 	}
 
-	// Migracion de los models
-	if err := dbAutoMigrate(
+	// 3. Migraciones
+	// Se usa db.AutoMigrate en vez de dbAutoMigrate
+	if err := db.AutoMigrate(
 		&models.Product{},
 		&models.Category{},
 		&models.ProductCategory{},
 		&models.ProductHistory{},
 	); err != nil {
-		log.Fatal("Error al migrar los models: %v", err)
+		log.Fatalf("Error al migrar los models: %v", err)
 	}
 
-	// Correr los seeders
+	// 4. Correr Seeders
 	if err := seeders.RunSeeders(db); err != nil {
-		log.Fatal("Error al ejecutar los seeders: %v", err)
+		log.Fatalf("Error al ejecutar los seeders: %v", err)
 	}
 
-	// Configuracion del router
-	router := gin.New()
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
-	
-	// WebSockets
+	// 5. Inicializar WebSockets
 	hub := websocket.NewHub()
 	go hub.Run()
 
-	// Llamado del router
+	// 6. Inyección de Dependencias
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo, hub)
+	productHandler := handlers.NewProductHandler(productService)
+
+	// 7. Configurar Router
+	router := gin.Default() // gin.Default ya incluye Logger() y Recovery()
+
+	// --- RUTAS DE WEBSOCKETS ---
+	router.GET("/ws", func(c *gin.Context) {
+		websocket.ServeWs(hub, c.Writer, c.Request) // Asegúrate que el método se llame ServeWs (o ServeWS)
+	})
+
+	// --- RUTAS PÚBLICAS ---
 	public := router.Group("/api")
 	{
-		// Llamado de las categorias
 		categories := public.Group("/categories")
 		{
+			// Nota del Tech Lead: Si refactorizas categorias, aquí usarías categoryHandler.GetCategories
 			categories.GET("", handlers.GetCategories)
 			categories.GET("/:id", handlers.GetCategoryByID)
 		}
-		// Llamado de los productos
+		
 		products := public.Group("/products")
 		{
 			products.GET("", handlers.GetProducts)
 			products.GET("/:id", handlers.GetProductByID)
-			products.GET("/:id/history", handlers.GetProduct)
+			products.GET("/:id/history", handlers.GetProduct) // ¿Quizás debería llamarse GetProductHistory?
 		}
-		// Busquedas
+		
 		search := public.Group("/search")
 		{
 			search.GET("", handlers.Search)
 		}
 	}
-}
 
-// Autenticacion
-protected := router.Group("/api")
-protected.Use()
-{
-	admin := protected.Group("/")
-	admin.Use(middleware.RoleMiddleware("admin"))
+	// --- RUTAS PROTEGIDAS (Requieren Token y Rol) ---
+	protected := router.Group("/api")
+	// Aquí deberías agregar tu middleware que verifica que el JWT sea válido:
+	// protected.Use(middleware.AuthMiddleware()) 
 	{
-		// Productos CRUD
-		products := admin.Group("/products")
+		// Rutas exclusivas para ADMIN
+		admin := protected.Group("/")
+		admin.Use(middleware.RoleMiddleware("admin"))
 		{
-			products.POST("", handlers.CreateProduct)
-			products.PUT("/:id", handlers.UpdateProduct)
-			products.DELETE("/:id", handlers.DeleteProduct)	
+			// Productos CRUD (Usamos el handler con Inyección de Dependencias)
+			products := admin.Group("/products")
+			{
+				products.POST("", productHandler.CreateProduct) 
+				products.PUT("/:id", productHandler.Update) // Este es el que refactorizamos
+				products.DELETE("/:id", productHandler.DeleteProduct)
+			}
+
+			// Categorias CRUD
+			categories := admin.Group("/categories")
+			{
+				categories.POST("", handlers.CreateCategory)
+				categories.PUT("/:id", handlers.UpdateCategory)
+				categories.DELETE("/:id", handlers.DeleteCategory)
+			}
 		}
 
-		// Categorias CRUD
-		categories := admin.Group("/categories")
+		// Rutas para CLIENTE y ADMIN
+		client := protected.Group("/")
+		client.Use(middleware.RoleMiddleware("client", "admin"))
 		{
-			categories.POST("", handlers.CreateCategory)
-			categories.PUT("/:id", handlers.UpdateCategory)
-			categories.DELETE("/:id", handlers.DeleteCategory)	
+			// Aquí irían acciones que un cliente autenticado puede hacer
 		}
 	}
-	// Router Cliente
-	client := protected.Group("/")
-	client.Use(middleware.RoleMiddleware("client", "admin"))
-	{
-		//
-	}
-}
-// webSocket con los endpoints
-router.GET("/ws", func(c *gin.Context){
-	webSocket.ServeWs(hub, c.Writer, c.Request)
-})
 
-// Inicializar el servidor
-port := os.Getenv("PORT")
-if port == ""{
-	port = "8080"
-}
-log.Printf("Servidor corriendo en el puerto %s", port)
-if err := router.Run(":" + port); err != nil{
-	log.Fatal("Error al iniciar el servidor: %v", err)
+	// 8. Iniciar el Servidor y Graceful Shutdown
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: router,
+	}
+
+	// Ejecutamos el servidor en una Goroutine para que no bloquee el hilo principal
+	go func() {
+		log.Printf("Servidor corriendo en el puerto %s\n", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error al iniciar el servidor: %v", err)
+		}
+	}()
+
+	// Esperar señal de apagado del sistema operativo (Ctrl+C, Docker stop, etc.)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit 
+	
+	log.Println("Señal de apagado recibida. Cerrando conexiones...")
+
+	// Damos 5 segundos para que terminen las peticiones HTTP activas
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("El servidor forzó el apagado:", err)
+	}
+
+	log.Println("Servidor apagado correctamente. ¡Adiós!")
 }
