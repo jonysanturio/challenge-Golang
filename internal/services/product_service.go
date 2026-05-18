@@ -2,8 +2,10 @@ package services
 
 import (
 	"time"
-	"qisur-challenge/internal/repositories"
-	"qisur-challengue/websocket"
+
+	"github.com/jonysanturio/challenge-golang/internal/models"
+	"github.com/jonysanturio/challenge-golang/internal/repositories"
+	"github.com/jonysanturio/challenge-golang/websocket"
 
 )
 
@@ -27,7 +29,7 @@ func (s *productService) UpdateProduct(id uint, input *models.Product) error {
 		ProductID:    id,
 		Stock:        input.Stock,
 		Price:        input.Price,
-		UpdatedAt:    time.Now(),
+		ChangedAt:    time.Now(),
 	}
 	err := s.repo.UpdateWithHistory(input, history)
 	if err != nil{

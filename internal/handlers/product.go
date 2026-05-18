@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"tu-proyecto/models"
-	"tu-proyecto/internal/services"
-	"github.com/gin-godic/gin"
+	"github.com/jonysanturio/challenge-golang/internal/models"
+	"github.com/jonysanturio/challenge-golang/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
 type ProductHandler struct {
@@ -39,4 +39,25 @@ func (h *ProductHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Producto actualizado y evento emitido"})
+}
+
+// Dummy implementations for missing handlers
+func GetProducts(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+}
+
+func GetProductByID(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+}
+
+func GetProduct(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+}
+
+func (h *ProductHandler) CreateProduct(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+}
+
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
 }

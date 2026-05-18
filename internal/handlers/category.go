@@ -6,8 +6,8 @@ import (
 
   "github.com/gin-gonic/gin"
 
-  "qisur-challenge/models"
-  "qisur-challenge/config"
+  "github.com/jonysanturio/challenge-golang/internal/models"
+  "github.com/jonysanturio/challenge-golang/config"
 )
 
 // GetCategories handles GET /api/categories
@@ -41,8 +41,7 @@ func GetCategories(c *gin.Context) {
   }
 
   query.Count(&total)
-  query = db.Offset(limit).Limit(limit).Offset(offset).Find(&cate
-gories)
+  query = db.Offset(limit).Limit(limit).Offset(offset).Find(&categories)
 
   c.JSON(http.StatusOK, gin.H{
           "data": categories,
@@ -50,12 +49,11 @@ gories)
                   "page":  page,
                   "limit": limit,
                   "total": total,
-                  "pages": (total + int64(limit) - 1) / int64(limi
+                  "pages": (total + int64(limit) - 1) / int64(limit),
           },
   })
 }
 
-// GetCategoryByID handles GET /api/categories/:id
 func GetCategoryByID(c *gin.Context) {
   db := config.GetDB()
   id := c.Param("id")

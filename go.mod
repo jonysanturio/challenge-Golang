@@ -1,4 +1,4 @@
-module github.com/jonysanturio/qisur-challenge
+module github.com/jonysanturio/challenge-golang
 
 go 1.25.6
 
@@ -6,7 +6,6 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/jinzhu/gorm v1.9.16
 	github.com/joho/godotenv v1.5.1
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.3

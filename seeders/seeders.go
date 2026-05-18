@@ -5,9 +5,8 @@ import (
   "math/rand"
   "time"
   
-  "github.com/jinzhu/gorm"
-  "qisur-challenge/models"
-  "qisur-challenge/config"
+  "gorm.io/gorm"
+	"github.com/jonysanturio/challenge-golang/internal/models"
 )
 // RunSeeders runs all seeders
 func RunSeeders(db *gorm.DB) error {

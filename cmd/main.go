@@ -12,15 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	// OJO: Asegúrate de que esta sea la ruta real de tu módulo en go.mod
-	"github.com/jonysanturio/challenge-golang/config"
-	"github.com/jonysanturio/challenge-golang/handlers"
-	"github.com/jonysanturio/challenge-golang/middleware"
-	"github.com/jonysanturio/challenge-golang/models"
-	"github.com/jonysanturio/challenge-golang/repositories"
-	"github.com/jonysanturio/challenge-golang/seeders"
-	"github.com/jonysanturio/challenge-golang/services"
 	"github.com/jonysanturio/challenge-golang/websocket"
+	"github.com/jonysanturio/challenge-golang/config"
+	"github.com/jonysanturio/challenge-golang/seeders"
+
+	"github.com/jonysanturio/challenge-golang/internal/handlers"
+	"github.com/jonysanturio/challenge-golang/internal/middleware"
+	"github.com/jonysanturio/challenge-golang/internal/models"
+	"github.com/jonysanturio/challenge-golang/internal/repositories"
+	"github.com/jonysanturio/challenge-golang/internal/services"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 
 	// 2. Inicializar BD
 	config.Init() // Si tienes esta función en config
-	db := config.ConnectDB() // o GetDB()
+	db := config.GetDB() // o GetDB()
 	if db == nil {
 		log.Fatal("Error al conectar a la base de datos")
 	}

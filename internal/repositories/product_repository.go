@@ -1,14 +1,13 @@
 package repositories
 
 import (
-	"challenge-golang/internal/models"
+	"github.com/jonysanturio/challenge-golang/internal/models"
 
-	"github.com/jonysanturio/qisur-challenge/internal/models"
 	"gorm.io/gorm"
 )
 
 type ProductRepository interface{
-	UpdateWithHistory(product *models.Product, history *models.Product) error
+	UpdateWithHistory(product *models.Product, history *models.ProductHistory) error
 }
 
 type productRepository struct{
@@ -19,7 +18,7 @@ func NewProductRepository(db *gorm.DB) ProductRepository{
 	return &productRepository{db}
 }
 
-func (r *productRepository) UpdateWithHistory(product *models.Product, history *models.Product) error{
+func (r *productRepository) UpdateWithHistory(product *models.Product, history *models.ProductHistory) error{
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Actualizacion del producto
 		if err := tx.Save(product).Error; err != nil {

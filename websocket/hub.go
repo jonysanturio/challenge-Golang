@@ -15,7 +15,7 @@ type Hub struct {
    clients map[*Client]bool
 
    // Inbound messages from the clients.
-   broadcast chan []byte
+   Broadcast chan []byte
 
    // Register requests from the clients.
    register chan *Client
@@ -30,7 +30,7 @@ type Hub struct {
  // NewHub creates a new hub instance.
  func NewHub() *Hub {
    return &Hub{
-           broadcast:  make(chan []byte),
+           Broadcast:  make(chan []byte),
            register:   make(chan *Client),
            unregister: make(chan *Client),
            clients:    make(map[*Client]bool),
@@ -56,7 +56,7 @@ type Hub struct {
                   }
                   h.mutex.Unlock()
 
-          case message := <-h.broadcast:
+          case message := <-h.Broadcast:
                   h.mutex.RLock()
                   for client := range h.clients {
                           select {
@@ -103,7 +103,7 @@ func (c *Client) readPump() {
           }
           // Handle incoming messages if needed
           // For now, we just broadcast to all clients
-          c.hub.broadcast <- message
+          c.hub.Broadcast <- message
   }
 }
 // writePump pumps messages from the hub to the websocket connection.
@@ -115,14 +115,13 @@ func (c *Client) writePump() {
           c.conn.Close()
   }()
   for {
-          select {
+  select {
           case message, ok := <-c.send:
                   if !ok {
                           // The hub closed the channel.
-                          c.conn.WriteMessage(websocket.CloseMessage)
-                        
+                          c.conn.WriteMessage(websocket.PingMessage, []byte{})
                            return
-                   }
+                  }
 
                    w, err := c.conn.NextWriter(websocket.TextMessage)
                    if err != nil {
