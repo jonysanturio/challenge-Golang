@@ -86,15 +86,13 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
         c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permission."})
         c.Abort()
         return
+        }
 }
-
 // GenerateToken creates a JWT token for user
-func GenerateToken(userID uint, username, role string) (string, error) {
+func GenerateToken(UserID uint)(string, error){
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		UserID:   userID,
-		Username: username,
-		Role:     role,
+		UserID:   UserID,
 		RegisteredClaims: jwt.RegisteredClaims{
                 ExpiresAt: jwt.NewNumericDate(expirationTime),
                 IssuedAt:  jwt.NewNumericDate(time.Now()),

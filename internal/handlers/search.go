@@ -6,8 +6,8 @@ import (
 
     "github.com/gin-gonic/gin"
 
-    "qisur-challenge/models"
-    "qisur-challenge/config"
+    "github.com/jonysanturio/challenge-golang/internal/models"
+    "github.com/jonysanturio/challenge-golang/config"
     "gorm.io/gorm"
 )
    
@@ -33,7 +33,7 @@ if err != nil || limit < 1 {
 if limit > 100 {
         limit = 100
 }
-offset := (page - 1) * lim
+offset := (page - 1) * limit
 // Search query
 query := c.Query("q")
 if query == "" {
@@ -73,7 +73,7 @@ func searchProducts(c *gin.Context, db *gorm.DB, query string,
                   "page":  page,
                   "limit": limit,
                   "total": total,
-                  "pages": (total + int64(limit) - 1) / int64(limit)
+                  "pages": (total + int64(limit) - 1) / int64(limit),
 
           },
           "search": gin.H{
