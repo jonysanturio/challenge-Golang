@@ -10,7 +10,7 @@ import (
   "github.com/golang-jwt/jwt/v4"
 )
 
-var jwtKey = []byte(getEnv("JWT_SECRET", "-secret-key-change-in-production")) // Claims represents the JWT claims
+var jwtKey = []byte(getEnv("JWT_SECRET", "-secret-key-change-in-production")) 
 type Claims struct {
   UserID uint   `json:"user_id"`
   Username string `json:"username"`
@@ -18,7 +18,6 @@ type Claims struct {
   jwt.RegisteredClaims
 }
 
-// getEnv helper function
 func getEnv(key, fallback string) string {
   if value := os.Getenv(key); value != "" {
           return value
@@ -26,7 +25,7 @@ func getEnv(key, fallback string) string {
   return fallback
 }
 
-// AuthMiddleware validates JWT token
+// AuthMiddleware valida los token JWT 
 func AuthMiddleware() gin.HandlerFunc {
   return func(c *gin.Context) {
           authHeader := c.GetHeader("Authorization")
@@ -36,7 +35,6 @@ func AuthMiddleware() gin.HandlerFunc {
                   return
           }
 
-          // Bearer token format
           parts := strings.Split(authHeader, " ")
           if len(parts) != 2 || parts[0] != "Bearer" {
                   c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must start with Bearer"})
@@ -57,7 +55,6 @@ func AuthMiddleware() gin.HandlerFunc {
                   return
           }
 
-          // Set user info in context
           c.Set("user_id", claims.UserID)
           c.Set("username", claims.Username)
           c.Set("role", claims.Role)
@@ -65,7 +62,7 @@ func AuthMiddleware() gin.HandlerFunc {
  }
 }
 
-// RoleMiddleware checks if user has required role(s)
+// RoleMiddleware comprueba si el usuario tiene los permisos
 func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
   return func(c *gin.Context) {
           userRole, exists := c.Get("role")
@@ -88,7 +85,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
         return
         }
 }
-// GenerateToken creates a JWT token for user
+// GenerateToken crea un token JWT
 func GenerateToken(UserID uint)(string, error){
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{

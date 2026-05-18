@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal" // IMPORTANTE: Faltaba para el Graceful Shutdown
+	"os/signal"
 	"syscall"
 	"time"
 
@@ -24,20 +24,19 @@ import (
 )
 
 func main() {
-	// 1. Cargar variables de entorno
+	// Cargar variables de entorno
 	if err := godotenv.Load(); err != nil {
 		log.Println("Advertencia: Archivo .env no encontrado. Usando variables del sistema.")
 	}
 
-	// 2. Inicializar BD
-	config.Init() // Si tienes esta función en config
-	db := config.GetDB() // o GetDB()
+	// Inicializar BD
+	config.Init() 
+	db := config.GetDB() 
 	if db == nil {
 		log.Fatal("Error al conectar a la base de datos")
 	}
 
-	// 3. Migraciones
-	// Se usa db.AutoMigrate en vez de dbAutoMigrate
+	// Migraciones
 	if err := db.AutoMigrate(
 		&models.Product{},
 		&models.Category{},
@@ -47,34 +46,33 @@ func main() {
 		log.Fatalf("Error al migrar los models: %v", err)
 	}
 
-	// 4. Correr Seeders
+	// Correr Seeders
 	if err := seeders.RunSeeders(db); err != nil {
 		log.Fatalf("Error al ejecutar los seeders: %v", err)
 	}
 
-	// 5. Inicializar WebSockets
+	// Inicializar WebSockets
 	hub := websocket.NewHub()
 	go hub.Run()
 
-	// 6. Inyección de Dependencias
+	// Inyección de Dependencias
 	productRepo := repositories.NewProductRepository(db)
 	productService := services.NewProductService(productRepo, hub)
 	productHandler := handlers.NewProductHandler(productService)
 
-	// 7. Configurar Router
-	router := gin.Default() // gin.Default ya incluye Logger() y Recovery()
+	// Configurar Router
+	router := gin.Default() 
 
-	// --- RUTAS DE WEBSOCKETS ---
+	// Rutas de WebSockets
 	router.GET("/ws", func(c *gin.Context) {
-		websocket.ServeWs(hub, c.Writer, c.Request) // Asegúrate que el método se llame ServeWs (o ServeWS)
+		websocket.ServeWs(hub, c.Writer, c.Request)
 	})
 
-	// --- RUTAS PÚBLICAS ---
+	// Rutas Públicas
 	public := router.Group("/api")
 	{
 		categories := public.Group("/categories")
 		{
-			// Nota del Tech Lead: Si refactorizas categorias, aquí usarías categoryHandler.GetCategories
 			categories.GET("", handlers.GetCategories)
 			categories.GET("/:id", handlers.GetCategoryByID)
 		}
@@ -92,24 +90,19 @@ func main() {
 		}
 	}
 
-	// --- RUTAS PROTEGIDAS (Requieren Token y Rol) ---
+	// Rutas Protegidas (Requieren Token y Rol)
 	protected := router.Group("/api")
-	// Aquí deberías agregar tu middleware que verifica que el JWT sea válido:
-	// protected.Use(middleware.AuthMiddleware()) 
 	{
-		// Rutas exclusivas para ADMIN
 		admin := protected.Group("/")
 		admin.Use(middleware.RoleMiddleware("admin"))
 		{
-			// Productos CRUD (Usamos el handler con Inyección de Dependencias)
 			products := admin.Group("/products")
 			{
 				products.POST("", productHandler.CreateProduct) 
-				products.PUT("/:id", productHandler.Update) // Este es el que refactorizamos
+				products.PUT("/:id", productHandler.Update)
 				products.DELETE("/:id", productHandler.DeleteProduct)
 			}
 
-			// Categorias CRUD
 			categories := admin.Group("/categories")
 			{
 				categories.POST("", handlers.CreateCategory)
@@ -122,11 +115,11 @@ func main() {
 		client := protected.Group("/")
 		client.Use(middleware.RoleMiddleware("client", "admin"))
 		{
-			// Aquí irían acciones que un cliente autenticado puede hacer
+			// Acciones de clientes
 		}
 	}
 
-	// 8. Iniciar el Servidor y Graceful Shutdown
+	// Iniciar el Servidor y Graceful Shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -137,7 +130,6 @@ func main() {
 		Handler: router,
 	}
 
-	// Ejecutamos el servidor en una Goroutine para que no bloquee el hilo principal
 	go func() {
 		log.Printf("Servidor corriendo en el puerto %s\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -145,14 +137,12 @@ func main() {
 		}
 	}()
 
-	// Esperar señal de apagado del sistema operativo (Ctrl+C, Docker stop, etc.)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit 
 	
 	log.Println("Señal de apagado recibida. Cerrando conexiones...")
 
-	// Damos 5 segundos para que terminen las peticiones HTTP activas
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

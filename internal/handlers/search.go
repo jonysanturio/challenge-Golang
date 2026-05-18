@@ -11,17 +11,14 @@ import (
     "gorm.io/gorm"
 )
    
-// Search handles GET /api/search
-// Supports searching products or categories with query parameters
 func Search(c *gin.Context) {
     db := config.GetDB()
 
-// Search type: product or category
 searchType := c.Query("type")
 if searchType == "" {
-        searchType = "product" // default
+        searchType = "product" 
 }
-// Pagination
+// Paginacion
 page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 if err != nil || page < 1 {
         page = 1
@@ -34,7 +31,7 @@ if limit > 100 {
         limit = 100
 }
 offset := (page - 1) * limit
-// Search query
+
 query := c.Query("q")
 if query == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Search que required"})

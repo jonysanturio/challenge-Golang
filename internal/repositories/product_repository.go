@@ -20,12 +20,10 @@ func NewProductRepository(db *gorm.DB) ProductRepository{
 
 func (r *productRepository) UpdateWithHistory(product *models.Product, history *models.ProductHistory) error{
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Actualizacion del producto
 		if err := tx.Save(product).Error; err != nil {
 			return err
 		}
 
-		// Guardado de historial
 		if history.Price == 0 && history.Stock == 0 {
 			return nil
 		}

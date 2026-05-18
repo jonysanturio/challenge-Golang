@@ -10,11 +10,9 @@ import (
   "github.com/jonysanturio/challenge-golang/config"
 )
 
-// GetCategories handles GET /api/categories
 func GetCategories(c *gin.Context) {
   db := config.GetDB()
 
-  // Pagination parameters
   page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
   if err != nil || page < 1 {
           page = 1
@@ -28,7 +26,6 @@ func GetCategories(c *gin.Context) {
   }
   offset := (page - 1) * limit
 
-  // Filtering
   name := c.Query("name")
 
   var categories []models.Category
@@ -67,7 +64,6 @@ func GetCategoryByID(c *gin.Context) {
   c.JSON(http.StatusOK, gin.H{"data": category})
 }
 
-// CreateCategory handles POST /api/categories
 func CreateCategory(c *gin.Context) {
   db := config.GetDB()
   var input struct {
@@ -90,13 +86,9 @@ func CreateCategory(c *gin.Context) {
           return
   }
 
-  // Notify via WebSocket
-  // websocket.NotifyCategoryCreated(category)
-
   c.JSON(http.StatusCreated, gin.H{"data": category})
 }
 
-// UpdateCategory handles PUT /api/categories/:id
 func UpdateCategory(c *gin.Context) {
   db := config.GetDB()
   id := c.Param("id")
@@ -129,13 +121,9 @@ func UpdateCategory(c *gin.Context) {
           return
   }
 
-  // Notify via WebSocket
-  // websocket.NotifyCategoryUpdated(category)
-
   c.JSON(http.StatusOK, gin.H{"data": category})
 }
 
-// DeleteCategory handles DELETE /api/categories/:id
 func DeleteCategory(c *gin.Context) {
   db := config.GetDB()
   id := c.Param("id")
@@ -150,9 +138,6 @@ func DeleteCategory(c *gin.Context) {
           c.JSON(http.StatusInternalServerError, gin.H{"error": "For delete category"})
           return
   }
-
-  // Notify via WebSocket
-  // websocket.NotifyCategoryDeleted(category.ID)
 
   c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
 }

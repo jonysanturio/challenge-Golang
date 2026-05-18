@@ -20,7 +20,6 @@ func Init(){
 	// Conexion de la base de datos
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == ""{
-		// Construct DSN
 		host := os.Getenv("DB_HOST")
 		if host == "" {
 			host = "localhost"

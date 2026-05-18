@@ -28,7 +28,6 @@ type ProductHistory struct {
 	Stock	int		`gorm:"not null" json:"stock"`
 	ChangedAt	time.Time	`gorm:"not null;default:now()" json:"changed"`
 	
-	//Relacion con Producto
 	Product Product `gorm:"foreignKey:ProductID;constraint:OneDelete:CASCADE;" json:"-"`
 }
 

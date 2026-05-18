@@ -8,14 +8,12 @@ import (
   "gorm.io/gorm"
 	"github.com/jonysanturio/challenge-golang/internal/models"
 )
-// RunSeeders runs all seeders
+// RunSeeders corre todos los seeders
 func RunSeeders(db *gorm.DB) error {
   rand.Seed(time.Now().UnixNano())
-  // Seed categories
   if err := seedCategories(db); err != nil {
           return err
   }
-  // Seed products
   if err := seedProducts(db); err != nil {
           return err
   }
@@ -23,7 +21,6 @@ func RunSeeders(db *gorm.DB) error {
   return nil
 }
 func seedCategories(db *gorm.DB) error {
-  // Check if categories already exist
   var count int64
   db.Model(&models.Category{}).Count(&count)
   if count > 0 {
@@ -46,14 +43,12 @@ func seedCategories(db *gorm.DB) error {
   return nil
 }
 func seedProducts(db *gorm.DB) error {
-  // Check if products already exist
   var count int64
   db.Model(&models.Product{}).Count(&count)
   if count > 0 {
           log.Println("Products already seeded, skipping")
           return nil
   }
-  // Get all categories for assignment
   var categories []models.Category
   if err := db.Find(&categories).Error; err != nil {
           return err
@@ -78,10 +73,8 @@ func seedProducts(db *gorm.DB) error {
           if err := db.Create(&product).Error; err != nil {
                   return err
           }
-          // Assign 1-3 random categories to each product
-          numCategories := 1 + rand.Intn(3) // 1 to 3 categories
+          numCategories := 1 + rand.Intn(3)
           selectedCategories := make([]models.Category, 0, numCategories)
-          // Simple random selection (could be improved)
           perm := rand.Perm(len(categories))
           for j := 0; j < numCategories && j < len(perm); j++ {
                   selectedCategories = append(selectedCategories, categories[perm[j]])
@@ -89,7 +82,6 @@ func seedProducts(db *gorm.DB) error {
           if err := db.Model(&product).Association("Categories").Append(&selectedCategories); err != nil {
                   return err
           }
-          // Create initial history record
           history := models.ProductHistory{
                   ProductID: product.ID,
                   Price:     product.Price,

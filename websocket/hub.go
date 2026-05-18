@@ -9,25 +9,14 @@ import (
         "github.com/gorilla/websocket"
 )
 
-// Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
-   // Registered clients.
    clients map[*Client]bool
-
-   // Inbound messages from the clients.
    Broadcast chan []byte
-
-   // Register requests from the clients.
    register chan *Client
-
-   // Unregister requests from clients.
    unregister chan *Client
-
-   // Mutex for thread safety
    mutex sync.RWMutex
  }
 
- // NewHub creates a new hub instance.
  func NewHub() *Hub {
    return &Hub{
            Broadcast:  make(chan []byte),
@@ -37,7 +26,6 @@ type Hub struct {
    }
  }
 
- // Run starts the hub's event loop.
  func (h *Hub) Run() {
    for {
            select {
@@ -71,23 +59,14 @@ type Hub struct {
   }
 }
 
-// Client is a middleman between the websocket connection and the hub.
 
 type Client struct {
    hub *Hub
-
-   // The websocket connection.
    conn *websocket.Conn
-
-   // Buffered channel of outbound messages.
    send chan []byte
 }
 
-// readPump pumps messages from the websocket connection to the hub.
 
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
 func (c *Client) readPump() {
   defer func() {
           c.hub.unregister <- c
@@ -101,15 +80,10 @@ func (c *Client) readPump() {
                   }
                   break
           }
-          // Handle incoming messages if needed
-          // For now, we just broadcast to all clients
           c.hub.Broadcast <- message
   }
 }
-// writePump pumps messages from the hub to the websocket connection.
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
+
 func (c *Client) writePump() {
   defer func() {
           c.conn.Close()
@@ -118,7 +92,6 @@ func (c *Client) writePump() {
   select {
           case message, ok := <-c.send:
                   if !ok {
-                          // The hub closed the channel.
                           c.conn.WriteMessage(websocket.PingMessage, []byte{})
                            return
                   }
@@ -129,7 +102,6 @@ func (c *Client) writePump() {
                    }
                    w.Write(message)
 
-                   // Add queued chat messages to the current webso
                    n := len(c.send)
                    for i := 0; i < n; i++ {
                            w.Write(<-c.send)
@@ -142,7 +114,7 @@ func (c *Client) writePump() {
    }
 }
 
-// ServeWs handles websocket requests from the peer.
+// ServeWs maneja las peticiones websocket
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
   conn, err := upgrader.Upgrade(w, r, nil)
   if err != nil {
@@ -152,25 +124,18 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 client := &Client{hub: hub, conn: conn, send: make(chan []byte,)}
 client.hub.register <- client
 
-// Allow collection of memory referenced by the caller by doing all work in
-// new goroutines.
 go client.writePump()
 go client.readPump()
 }
-
-// upgrader is used to upgrade HTTP connections to WebSocket connections.
 var upgrader = websocket.Upgrader{
   CheckOrigin: func(r *http.Request) bool {
-    // Allow all connections for simplicity; adjust for prod
 
  return true
   },
 }
 
-// Notify functions for broadcasting events
+// Notificacion para eventos 
 func NotifyProductCreated(product interface{}) {
-  // Implementation would serialize product and broadcast
-  // This is a placeholder for actual implementation
   fmt.Printf("Product created: %v\n", product)
 }
 

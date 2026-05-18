@@ -3,9 +3,11 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"github.com/gin-gonic/gin"
+
+	"github.com/jonysanturio/challenge-golang/config"
 	"github.com/jonysanturio/challenge-golang/internal/models"
 	"github.com/jonysanturio/challenge-golang/internal/services"
-	"github.com/gin-gonic/gin"
 )
 
 type ProductHandler struct {
@@ -17,7 +19,6 @@ func NewProductHandler(service services.ProductService) *ProductHandler {
 }
 
 func (h *ProductHandler) Update(c *gin.Context) {
-	// 1. Extraer ID
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -25,25 +26,29 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// 2. Parsear y validar JSON
 	var input models.Product
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 3. Llamar al servicio (Limpio y delegando responsabilidad)
 	if err := h.service.UpdateProduct(uint(id), &input); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar producto"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Producto actualizado y evento emitido"})
+	c.JSON(http.StatusOK, gin.H{"message": "Producto actualizado"})
 }
 
-// Dummy implementations for missing handlers
+// Implementacion de los handlers
 func GetProducts(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Not implemented"})
+	db := config.GetDB()
+	var product []models.Product
+	if err := db.Find(&product).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener productos"})
+		return
+	}
+	c.JSON(http.StatusOK, product)
 }
 
 func GetProductByID(c *gin.Context) {
